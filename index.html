@@ -1,5 +1,173 @@
 <!DOCTYPE html>
 <html>
-<body>
-</body>
+	<head>
+		<title>tesseract</title>
+	</head>
+	<body>
+
+		<script src="lib/three.min.js"></script>
+		
+		<script>
+		
+var camera, scene, renderer;
+var mouseX = 0, mouseY = 0;
+var windowHalfX = window.innerWidth / 2;
+var windowHalfY = window.innerHeight / 2;
+
+init();
+animate();
+
+function catmullrom(a, b, c, d, i)
+{
+    return a * ((-i + 2) * i - 1) * i * 0.5 +
+           b * (((3 * i - 5) * i) * i + 2) * 0.5 +
+           c * ((-3 * i + 4) * i + 1) * i * 0.5 +
+           d * ((i - 1) * i * i) * 0.5;
+}
+
+function transformCylinderToP1P2(cyl, p1, p2)
+{
+	center = new THREE.Vector3(0,0,0);
+	center.copy(p1);
+	center.add(p2);
+	center.multiplyScalar(0.5);
+
+	cyl.matrix.makeTranslation(center.x, center.y, center.z);
+
+	vector = new THREE.Vector3(0,0,0);
+	vector.copy(p2);
+	vector.sub(p1);
+
+	var length = vector.length();
+
+	// take cross product of vector and up vector to get axis of rotation
+	var yAxis = new THREE.Vector3(0,1,0);
+	// Needed later for dot product, just do it now;
+	// a little lazy, should really copy it to a local Vector3.
+	vector.normalize();
+	var rotationAxis = new THREE.Vector3();
+	rotationAxis.crossVectors(vector, yAxis);
+	if ( rotationAxis.length() < 0.000001 )
+	{
+		// Special case: if rotationAxis is just about zero, set to X axis,
+		// so that the angle can be given as 0 or PI. This works ONLY
+		// because we know one of the two axes is +Y.
+		rotationAxis.set( 1, 0, 0 );
+	}
+	rotationAxis.normalize();
+
+	// take dot product of vector and up vector to get cosine of angle of rotation
+	var theta = -Math.acos( vector.dot( yAxis ) );
+	var rotMatrix = new THREE.Matrix4();
+	rotMatrix.makeRotationAxis( rotationAxis, theta );
+    
+	cyl.matrix.multiply( rotMatrix );
+
+	cyl.matrix.scale(new THREE.Vector3(1, length, 1));
+}
+
+function init() {
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.z = 100;
+    scene.add(camera);
+
+    var material = new THREE.MeshLambertMaterial({color: 0xaabbff});
+
+    var vertexPoints = [
+        new THREE.Vector3(-10,-10,-10),
+        new THREE.Vector3( 10,-10,-10),
+        new THREE.Vector3( 10, 10,-10),
+        new THREE.Vector3(-10, 10,-10),
+        new THREE.Vector3(-10,-10, 10),
+        new THREE.Vector3( 10,-10, 10),
+        new THREE.Vector3( 10, 10, 10),
+        new THREE.Vector3(-10, 10, 10),
+        new THREE.Vector3(-20,-20,-20),
+        new THREE.Vector3( 20,-20,-20),
+        new THREE.Vector3( 20, 20,-20),
+        new THREE.Vector3(-20, 20,-20),
+        new THREE.Vector3(-20,-20, 20),
+        new THREE.Vector3( 20,-20, 20),
+        new THREE.Vector3( 20, 20, 20),
+        new THREE.Vector3(-20, 20, 20) ];
+    
+    geomSph = new THREE.SphereGeometry(1, 16, 16);
+    for (var i=0; i < vertexPoints.length; ++i)
+    {
+        sphere = new THREE.Mesh(geomSph, material);
+        sphere.position.copy(vertexPoints[i]);
+        scene.add(sphere);
+    }
+    
+    var vertexUnions = [ // small cube //
+                         [0,1],   [1,2],   [2,3],   [3,0],
+                         [0,4],   [1,5],   [2,6],   [3,7],
+                         [4,5],   [5,6],   [6,7],   [7,4],
+                         // diagonals //
+                         [0,8],   [1,9],   [2,10],  [3,11],
+                         [4,12],  [5,13],  [6,14],  [7,15],
+                         // big cube //
+                         [8,9],   [9,10],  [10,11], [11,8], 
+                         [8,12],  [9,13],  [10,14], [11,15],
+                         [12,13], [13,14], [14,15], [15,12] ];
+
+    geomCyl = new THREE.CylinderGeometry(1, 1, 1, 16, 1, true);
+    for (var i=0; i < vertexUnions.length; ++i)
+    {
+        cyl = new THREE.Mesh(geomCyl, material);
+		cyl.matrixAutoUpdate = false;
+		transformCylinderToP1P2(cyl, vertexPoints[vertexUnions[i][0]], vertexPoints[vertexUnions[i][1]]);
+        scene.add(cyl);
+    }
+ 
+    light = new THREE.DirectionalLight( 0xffffff );
+	light.position.set(-1, 1, 2);
+	scene.add( light );
+	
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    document.body.appendChild(renderer.domElement);
+
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	window.addEventListener( 'resize', onWindowResize, false );
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    render();
+}
+
+function onWindowResize() {
+	windowHalfX = window.innerWidth  / 2;
+	windowHalfY = window.innerHeight / 2;
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+function onDocumentMouseMove( event ) {
+	mouseX = (event.clientX - windowHalfX)*0.3;
+	mouseY = (event.clientY - windowHalfY)*0.3;
+}
+
+function render() {
+
+	camera.position.x += ( -mouseX - camera.position.x ) * 0.5;
+	camera.position.y += (  mouseY - camera.position.y ) * 0.5;
+
+	camera.lookAt( scene.position );
+
+    renderer.render(scene, camera);
+
+}
+	
+		</script>
+	
+	</body>
 </html>
