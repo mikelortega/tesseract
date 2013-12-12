@@ -17,12 +17,21 @@ var windowHalfY = window.innerHeight / 2;
 init();
 animate();
 
-function catmullrom(a, b, c, d, i)
+function catmullrom_unit(a, b, c, d, i)
 {
     return a * ((-i + 2) * i - 1) * i * 0.5 +
            b * (((3 * i - 5) * i) * i + 2) * 0.5 +
            c * ((-3 * i + 4) * i + 1) * i * 0.5 +
            d * ((i - 1) * i * i) * 0.5;
+}
+
+function catmullrom(p1, p2, p3, p4, i)
+{
+	result = new THREE.Vector3(0,0,0);
+	result.setX(catmullrom_unit(p1.x, p2.x, p3.x, p4.x, i));
+	result.setY(catmullrom_unit(p1.y, p2.y, p3.y, p4.y, i));
+	result.setZ(catmullrom_unit(p1.z, p2.z, p3.z, p4.z, i));
+    return result;
 }
 
 function transformCylinderToP1P2(cyl, p1, p2)
@@ -122,7 +131,40 @@ function init() {
 		transformCylinderToP1P2(cyl, vertexPoints[vertexUnions[i][0]], vertexPoints[vertexUnions[i][1]]);
         scene.add(cyl);
     }
- 
+
+    geomSph = new THREE.SphereGeometry(1, 16, 16);
+    for (var i=0.0; i < 1.0; i=i+0.1)
+    {
+		sph = new THREE.Mesh(geomSph, material);
+		var center = new THREE.Vector3();
+		center = catmullrom(vertexPoints[0], vertexPoints[1], vertexPoints[2], vertexPoints[3], i);
+		sph.matrixAutoUpdate = false;
+		sph.matrix.makeTranslation(center.x, center.y, center.z);
+		scene.add(sph);
+
+		sph = new THREE.Mesh(geomSph, material);
+		var center = new THREE.Vector3();
+		center = catmullrom(vertexPoints[1], vertexPoints[2], vertexPoints[3], vertexPoints[0], i);
+		sph.matrixAutoUpdate = false;
+		sph.matrix.makeTranslation(center.x, center.y, center.z);
+		scene.add(sph);
+		
+		sph = new THREE.Mesh(geomSph, material);
+		var center = new THREE.Vector3();
+		center = catmullrom(vertexPoints[2], vertexPoints[3], vertexPoints[0], vertexPoints[1], i);
+		sph.matrixAutoUpdate = false;
+		sph.matrix.makeTranslation(center.x, center.y, center.z);
+		scene.add(sph);
+		
+		sph = new THREE.Mesh(geomSph, material);
+		var center = new THREE.Vector3();
+		center = catmullrom(vertexPoints[3], vertexPoints[0], vertexPoints[1], vertexPoints[2], i);
+		sph.matrixAutoUpdate = false;
+		sph.matrix.makeTranslation(center.x, center.y, center.z);
+		scene.add(sph);
+
+	}
+	
     light = new THREE.DirectionalLight( 0xffffff );
 	light.position.set(-1, 1, 2);
 	scene.add( light );
