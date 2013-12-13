@@ -112,7 +112,7 @@ function init() {
         scene.add(sphere);
     }
 	satelite = new THREE.Mesh(geomSph, material);
- 	scene.add(satelite);
+ 	//scene.add(satelite);
    
     var vertexUnions = [ // small cube //
                          [0,1],   [1,2],   [2,3],   [3,0],
@@ -169,7 +169,7 @@ function onDocumentMouseMove( event ) {
 }
 
 function render() {
-
+/*
 	var center = new THREE.Vector3();
 	center = catmullrom(vertexPoints[12], vertexPoints[13], vertexPoints[14], vertexPoints[15], t);
 	satelite.position.copy(center);
@@ -177,7 +177,7 @@ function render() {
 	t = t + 0.01;
 	if (t > 1.0)
 		t = 0.0;
-
+*/
 	camera.position.x += ( -mouseX - camera.position.x ) * 0.5;
 	camera.position.y += (  mouseY - camera.position.y ) * 0.5;
 
