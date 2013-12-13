@@ -3,11 +3,19 @@
 	<head>
 		<title>tesseract</title>
 		<script src="lib/three.min.js"></script>
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
 	</head>
 	<body>	
 		<script type="text/javascript">
 		
 var camera, scene, renderer;
+var fov = 70;
 var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
@@ -15,9 +23,12 @@ var vertexPoints = [];
 var satelite;
 var t=0.0;	
 
-init();
-animate();
-
+// Start after loading background //
+var texture = THREE.ImageUtils.loadTexture( 'room.jpg', new THREE.UVMapping(), function () {
+	init();
+	animate();
+} );
+	
 function catmullrom_unit(a, b, c, d, i)
 {
     return a * ((-i + 2) * i - 1) * i * 0.5 +
@@ -75,12 +86,17 @@ function transformCylinderToP1P2(cyl, p1, p2)
 
 	cyl.matrix.scale(new THREE.Vector3(1, length, 1));
 }
-	
+
 function init() {
 
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+	var texture = THREE.ImageUtils.loadTexture( 'room.jpg', new THREE.UVMapping(), function(){} );
+ 	var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
+	mesh.scale.x = -1;
+	scene.add( mesh );
+
+	camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.z = 100;
     scene.add(camera);
 
@@ -146,6 +162,7 @@ function init() {
 
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 	window.addEventListener( 'resize', onWindowResize, false );
+	document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
 }
 
 function animate() {
@@ -166,6 +183,20 @@ function onWindowResize() {
 function onDocumentMouseMove( event ) {
 	mouseX = (event.clientX - windowHalfX)*0.3;
 	mouseY = (event.clientY - windowHalfY)*0.3;
+}
+
+function onDocumentMouseWheel( event ) {
+	// WebKit
+	if ( event.wheelDeltaY )
+		fov -= event.wheelDeltaY * 0.05;
+	// Opera / Explorer 9
+	else if ( event.wheelDelta )
+		fov -= event.wheelDelta * 0.05;
+	// Firefox
+	else if ( event.detail )
+		fov += event.detail * 1.0;
+
+	camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
 }
 
 function render() {
