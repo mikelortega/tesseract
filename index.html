@@ -14,7 +14,7 @@
 	<body>	
 		<script type="text/javascript">
 		
-var camera, scene, renderer;
+var camera, cubeCamera, scene, renderer;
 var fov = 70;
 var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
@@ -100,8 +100,20 @@ function init() {
     camera.position.z = 100;
     scene.add(camera);
 
-    var material = new THREE.MeshLambertMaterial({color: 0xaabbff});
-    
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+	cubeCamera = new THREE.CubeCamera( 1, 1000, 256 );
+	cubeCamera.renderTarget.minFilter = THREE.LinearMipMapLinearFilter;
+	scene.add( cubeCamera );
+
+	document.body.appendChild( renderer.domElement );
+	
+	//
+	
+    //var material = new THREE.MeshLambertMaterial({color: 0xaabbff});
+	var material = new THREE.MeshBasicMaterial( { envMap: cubeCamera.renderTarget } );
+  
 	vertexPoints = [
 		new THREE.Vector3(-10,-10,-10),
 		new THREE.Vector3( 10,-10,-10),
@@ -151,14 +163,7 @@ function init() {
         scene.add(cyl);
     }
 
-    light = new THREE.DirectionalLight( 0xffffff );
-	light.position.set(-1, 1, 2);
-	scene.add( light );
-	
-	renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    document.body.appendChild(renderer.domElement);
+	//
 
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 	window.addEventListener( 'resize', onWindowResize, false );
@@ -214,6 +219,8 @@ function render() {
 
 	camera.lookAt( scene.position );
 
+	cubeCamera.updateCubeMap( renderer, scene );
+	
     renderer.render(scene, camera);
 
 }
