@@ -15,13 +15,18 @@
 		<script type="text/javascript">
 		
 var camera, cubeCamera, scene, renderer;
-var fov = 70;
-var mouseX = 0, mouseY = 0;
-var windowHalfX = window.innerWidth / 2;
-var windowHalfY = window.innerHeight / 2;
 var vertexPoints = [];
 var satelite;
-var t=0.0;	
+var t=0.0;
+var fov = 70,
+onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+lon = 0, onMouseDownLon = 0,
+lat = 0, onMouseDownLat = 0,
+phi = 0, theta = 0;
+var onPointerDownPointerX,
+    onPointerDownPointerY,
+    onPointerDownLon,
+    onPointerDownLat;
 
 // Start after loading background //
 var texture = THREE.ImageUtils.loadTexture( 'room.jpg', new THREE.UVMapping(), function () {
@@ -132,7 +137,7 @@ function init() {
 		new THREE.Vector3( 20, 20, 20),
 		new THREE.Vector3(-20, 20, 20) ];	
 	
-    geomSph = new THREE.SphereGeometry(1, 16, 16);
+    geomSph = new THREE.SphereGeometry(2, 16, 16);
     for (var i=0; i < vertexPoints.length; ++i)
     {
         sphere = new THREE.Mesh(geomSph, material);
@@ -154,7 +159,7 @@ function init() {
                          [8,12],  [9,13],  [10,14], [11,15],
                          [12,13], [13,14], [14,15], [15,12] ];
 
-    geomCyl = new THREE.CylinderGeometry(1, 1, 1, 16, 1, true);
+    geomCyl = new THREE.CylinderGeometry(2, 2, 1, 16, 1, true);
     for (var i=0; i < vertexUnions.length; ++i)
     {
         cyl = new THREE.Mesh(geomCyl, material);
@@ -165,9 +170,12 @@ function init() {
 
 	//
 
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	window.addEventListener( 'resize', onWindowResize, false );
+	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 	document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+	document.addEventListener( 'DOMMouseScroll', onDocumentMouseWheel, false);
+	window.addEventListener( 'resize', onWindowResized, false );
+
+	onWindowResized( null );
 }
 
 function animate() {
@@ -175,19 +183,29 @@ function animate() {
     render();
 }
 
-function onWindowResize() {
-	windowHalfX = window.innerWidth  / 2;
-	windowHalfY = window.innerHeight / 2;
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-
+function onWindowResized( event ) {
 	renderer.setSize( window.innerWidth, window.innerHeight );
+	camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+}
+
+function onDocumentMouseDown( event ) {
+	event.preventDefault();
+	onPointerDownPointerX = event.clientX;
+	onPointerDownPointerY = event.clientY;
+	onPointerDownLon = lon;
+	onPointerDownLat = lat;
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
 }
 
 function onDocumentMouseMove( event ) {
-	mouseX = (event.clientX - windowHalfX)*0.3;
-	mouseY = (event.clientY - windowHalfY)*0.3;
+	lon = ( event.clientX - onPointerDownPointerX ) * 0.1 + onPointerDownLon;
+	lat = ( event.clientY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+}
+
+function onDocumentMouseUp( event ) {
+	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
 }
 
 function onDocumentMouseWheel( event ) {
@@ -214,8 +232,15 @@ function render() {
 	if (t > 1.0)
 		t = 0.0;
 
-	camera.position.x += ( -mouseX - camera.position.x ) * 0.5;
-	camera.position.y += (  mouseY - camera.position.y ) * 0.5;
+	lon += .15;
+
+	lat = Math.max( - 85, Math.min( 85, lat ) );
+	phi = THREE.Math.degToRad( 90 - lat );
+	theta = THREE.Math.degToRad( lon );		
+		
+	camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+	camera.position.y = 100 * Math.cos( phi );
+	camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
 
 	camera.lookAt( scene.position );
 
