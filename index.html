@@ -32,7 +32,7 @@ var spheres = [];
 var cyls = [];
 
 // Start after loading background //
-var texture = THREE.ImageUtils.loadTexture( 'http://farm6.staticflickr.com/5479/11447408133_53bdbc0ca0_o.jpg', new THREE.UVMapping(), function () {
+var texture = THREE.ImageUtils.loadTexture( 'showroom.jpg', new THREE.UVMapping(), function () {
 	init();
 	animate();
 } );
@@ -102,7 +102,6 @@ function init() {
 
     scene = new THREE.Scene();
 
-	var texture = THREE.ImageUtils.loadTexture( 'room.jpg', new THREE.UVMapping(), function(){} );
  	var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
 	mesh.scale.x = -1;
 	scene.add( mesh );
