@@ -149,11 +149,6 @@ function init() {
         scene.add(sphere);
 		spheres[i] = sphere;
     }
-<<<<<<< HEAD
-	satelite = new THREE.Mesh(geomSph, material);
- 	//scene.add(satelite);
-=======
->>>>>>> origin/master
    
     vertexUnions = [ // small cube //
                      [0,1],   [1,2],   [2,3],   [3,0],
@@ -230,12 +225,6 @@ function onDocumentMouseWheel( event ) {
 }
 
 function render() {
-<<<<<<< HEAD
-/*
-	var center = new THREE.Vector3();
-	center = catmullrom(vertexPoints[12], vertexPoints[13], vertexPoints[14], vertexPoints[15], t);
-	satelite.position.copy(center);
-=======
 
 	vertsRotated[0]  = catmullrom(vertsFixed[1],  vertsFixed[0],  vertsFixed[8],  vertsFixed[9],  t);
 	vertsRotated[1]  = catmullrom(vertsFixed[9],  vertsFixed[1],  vertsFixed[0],  vertsFixed[8],  t);
@@ -253,7 +242,6 @@ function render() {
 	vertsRotated[6]  = new THREE.Vector3(vertsRotated[1].x, -vertsRotated[1].y, -vertsRotated[1].z);
 	vertsRotated[14] = new THREE.Vector3(vertsRotated[9].x, -vertsRotated[9].y, -vertsRotated[9].z);
 	vertsRotated[15] = new THREE.Vector3(vertsRotated[8].x, -vertsRotated[8].y, -vertsRotated[8].z);	
->>>>>>> origin/master
 
 	for (var i=0; i < vertexUnions.length; ++i)
 		transformCylinderToP1P2(cyls[i], vertsRotated[vertexUnions[i][0]], vertsRotated[vertexUnions[i][1]]);
@@ -264,11 +252,6 @@ function render() {
 	t = t + 0.01;
 	if (t > 1.0)
 		t = 0.0;
-<<<<<<< HEAD
-*/
-	camera.position.x += ( -mouseX - camera.position.x ) * 0.5;
-	camera.position.y += (  mouseY - camera.position.y ) * 0.5;
-=======
 
 	lon += .05;
 	lat   = Math.max( - 85, Math.min( 85, lat ) );
@@ -278,7 +261,6 @@ function render() {
 	camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
 	camera.position.y = 100 * Math.cos( phi );
 	camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
->>>>>>> origin/master
 
 	camera.lookAt( scene.position );
 
