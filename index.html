@@ -15,18 +15,21 @@
 		<script type="text/javascript">
 		
 var camera, cubeCamera, scene, renderer;
-var vertexPoints = [];
-var satelite;
+var vertsFixed   = [];
+var vertsRotated = [];
+var vertexUnions = [];
 var t=0.0;
-var fov = 70,
+var fov = 50,
 onMouseDownMouseX = 0, onMouseDownMouseY = 0,
-lon = 0, onMouseDownLon = 0,
-lat = 0, onMouseDownLat = 0,
+lon = 40, onMouseDownLon = 0,
+lat = 20, onMouseDownLat = 0,
 phi = 0, theta = 0;
 var onPointerDownPointerX,
     onPointerDownPointerY,
     onPointerDownLon,
     onPointerDownLat;
+var spheres = [];
+var cyls = [];
 
 // Start after loading background //
 var texture = THREE.ImageUtils.loadTexture( 'room.jpg', new THREE.UVMapping(), function () {
@@ -53,6 +56,10 @@ function catmullrom(p1, p2, p3, p4, i)
 
 function transformCylinderToP1P2(cyl, p1, p2)
 {
+	cyl.updateMatrix();
+
+	cyl.matrixAutoUpdate = false;
+
 	center = new THREE.Vector3(0,0,0);
 	center.copy(p1);
 	center.add(p2);
@@ -86,9 +93,8 @@ function transformCylinderToP1P2(cyl, p1, p2)
 	var theta = -Math.acos( vector.dot( yAxis ) );
 	var rotMatrix = new THREE.Matrix4();
 	rotMatrix.makeRotationAxis( rotationAxis, theta );
-    
+   
 	cyl.matrix.multiply( rotMatrix );
-
 	cyl.matrix.scale(new THREE.Vector3(1, length, 1));
 }
 
@@ -116,56 +122,52 @@ function init() {
 	
 	//
 	
-    //var material = new THREE.MeshLambertMaterial({color: 0xaabbff});
 	var material = new THREE.MeshBasicMaterial( { envMap: cubeCamera.renderTarget } );
   
-	vertexPoints = [
-		new THREE.Vector3(-10,-10,-10),
-		new THREE.Vector3( 10,-10,-10),
-		new THREE.Vector3( 10, 10,-10),
-		new THREE.Vector3(-10, 10,-10),
-		new THREE.Vector3(-10,-10, 10),
-		new THREE.Vector3( 10,-10, 10),
-		new THREE.Vector3( 10, 10, 10),
-		new THREE.Vector3(-10, 10, 10),
-		new THREE.Vector3(-20,-20,-20),
-		new THREE.Vector3( 20,-20,-20),
-		new THREE.Vector3( 20, 20,-20),
-		new THREE.Vector3(-20, 20,-20),
-		new THREE.Vector3(-20,-20, 20),
-		new THREE.Vector3( 20,-20, 20),
-		new THREE.Vector3( 20, 20, 20),
-		new THREE.Vector3(-20, 20, 20) ];	
+	vertsFixed[0]  = new THREE.Vector3(-15,-15,-15);
+	vertsFixed[1]  = new THREE.Vector3( 15,-15,-15);
+	vertsFixed[2]  = new THREE.Vector3( 15, 15,-15);
+	vertsFixed[3]  = new THREE.Vector3(-15, 15,-15);
+	vertsFixed[4]  = new THREE.Vector3(-15,-15, 15);
+	vertsFixed[5]  = new THREE.Vector3( 15,-15, 15);
+	vertsFixed[6]  = new THREE.Vector3( 15, 15, 15);
+	vertsFixed[7]  = new THREE.Vector3(-15, 15, 15);
+	vertsFixed[8]  = new THREE.Vector3(-30,-30,-30);
+	vertsFixed[9]  = new THREE.Vector3( 30,-30,-30);
+	vertsFixed[10] = new THREE.Vector3( 30, 30,-30);
+	vertsFixed[11] = new THREE.Vector3(-30, 30,-30);
+	vertsFixed[12] = new THREE.Vector3(-30,-30, 30);
+	vertsFixed[13] = new THREE.Vector3( 30,-30, 30);
+	vertsFixed[14] = new THREE.Vector3( 30, 30, 30);
+	vertsFixed[15] = new THREE.Vector3(-30, 30, 30);
 	
     geomSph = new THREE.SphereGeometry(2, 16, 16);
-    for (var i=0; i < vertexPoints.length; ++i)
+    for (var i=0; i < vertsFixed.length; ++i)
     {
-        sphere = new THREE.Mesh(geomSph, material);
-        sphere.position.copy(vertexPoints[i]);
+        var sphere = new THREE.Mesh(geomSph, material);
+        sphere.position.copy(vertsFixed[i]);
         scene.add(sphere);
+		spheres[i] = sphere;
     }
-	satelite = new THREE.Mesh(geomSph, material);
- 	scene.add(satelite);
    
-    var vertexUnions = [ // small cube //
-                         [0,1],   [1,2],   [2,3],   [3,0],
-                         [0,4],   [1,5],   [2,6],   [3,7],
-                         [4,5],   [5,6],   [6,7],   [7,4],
-                         // diagonals //
-                         [0,8],   [1,9],   [2,10],  [3,11],
-                         [4,12],  [5,13],  [6,14],  [7,15],
-                         // big cube //
-                         [8,9],   [9,10],  [10,11], [11,8], 
-                         [8,12],  [9,13],  [10,14], [11,15],
-                         [12,13], [13,14], [14,15], [15,12] ];
+    vertexUnions = [ // small cube //
+                     [0,1],   [1,2],   [2,3],   [3,0],
+                     [0,4],   [1,5],   [2,6],   [3,7],
+                     [4,5],   [5,6],   [6,7],   [7,4],
+                     // diagonals //
+                     [0,8],   [1,9],   [2,10],  [3,11],
+                     [4,12],  [5,13],  [6,14],  [7,15],
+                     // big cube //
+                     [8,9],   [9,10],  [10,11], [11,8], 
+                     [8,12],  [9,13],  [10,14], [11,15],
+                     [12,13], [13,14], [14,15], [15,12] ];
 
     geomCyl = new THREE.CylinderGeometry(2, 2, 1, 16, 1, true);
     for (var i=0; i < vertexUnions.length; ++i)
     {
         cyl = new THREE.Mesh(geomCyl, material);
-		cyl.matrixAutoUpdate = false;
-		transformCylinderToP1P2(cyl, vertexPoints[vertexUnions[i][0]], vertexPoints[vertexUnions[i][1]]);
         scene.add(cyl);
+		cyls[i] = cyl;
     }
 
 	//
@@ -224,18 +226,36 @@ function onDocumentMouseWheel( event ) {
 
 function render() {
 
-	var center = new THREE.Vector3();
-	center = catmullrom(vertexPoints[12], vertexPoints[13], vertexPoints[14], vertexPoints[15], t);
-	satelite.position.copy(center);
+	vertsRotated[0]  = catmullrom(vertsFixed[1],  vertsFixed[0],  vertsFixed[8],  vertsFixed[9],  t);
+	vertsRotated[1]  = catmullrom(vertsFixed[9],  vertsFixed[1],  vertsFixed[0],  vertsFixed[8],  t);
+	vertsRotated[9]  = catmullrom(vertsFixed[8],  vertsFixed[9],  vertsFixed[1],  vertsFixed[0],  t);
+	vertsRotated[8]  = catmullrom(vertsFixed[0],  vertsFixed[8],  vertsFixed[9],  vertsFixed[1],  t);
+	vertsRotated[3]  = new THREE.Vector3(vertsRotated[0].x, -vertsRotated[0].y,  vertsRotated[0].z);
+	vertsRotated[2]  = new THREE.Vector3(vertsRotated[1].x, -vertsRotated[1].y,  vertsRotated[1].z);
+	vertsRotated[10] = new THREE.Vector3(vertsRotated[9].x, -vertsRotated[9].y,  vertsRotated[9].z);
+	vertsRotated[11] = new THREE.Vector3(vertsRotated[8].x, -vertsRotated[8].y,  vertsRotated[8].z);	
+	vertsRotated[4]  = new THREE.Vector3(vertsRotated[0].x,  vertsRotated[0].y, -vertsRotated[0].z);
+	vertsRotated[5]  = new THREE.Vector3(vertsRotated[1].x,  vertsRotated[1].y, -vertsRotated[1].z);
+	vertsRotated[13] = new THREE.Vector3(vertsRotated[9].x,  vertsRotated[9].y, -vertsRotated[9].z);
+	vertsRotated[12] = new THREE.Vector3(vertsRotated[8].x,  vertsRotated[8].y, -vertsRotated[8].z);		
+	vertsRotated[7]  = new THREE.Vector3(vertsRotated[0].x, -vertsRotated[0].y, -vertsRotated[0].z);
+	vertsRotated[6]  = new THREE.Vector3(vertsRotated[1].x, -vertsRotated[1].y, -vertsRotated[1].z);
+	vertsRotated[14] = new THREE.Vector3(vertsRotated[9].x, -vertsRotated[9].y, -vertsRotated[9].z);
+	vertsRotated[15] = new THREE.Vector3(vertsRotated[8].x, -vertsRotated[8].y, -vertsRotated[8].z);	
 
+	for (var i=0; i < vertexUnions.length; ++i)
+		transformCylinderToP1P2(cyls[i], vertsRotated[vertexUnions[i][0]], vertsRotated[vertexUnions[i][1]]);
+
+    for (var i=0; i < vertsRotated.length; ++i)
+        spheres[i].position.copy(vertsRotated[i]);
+	
 	t = t + 0.01;
 	if (t > 1.0)
 		t = 0.0;
 
-	lon += .15;
-
-	lat = Math.max( - 85, Math.min( 85, lat ) );
-	phi = THREE.Math.degToRad( 90 - lat );
+	lon += .05;
+	lat   = Math.max( - 85, Math.min( 85, lat ) );
+	phi   = THREE.Math.degToRad( 90 - lat );
 	theta = THREE.Math.degToRad( lon );		
 		
 	camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
