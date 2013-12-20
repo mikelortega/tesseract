@@ -175,11 +175,11 @@ function init() {
 	geomText = new THREE.TextGeometry("Urte berri on " + window.location.href.split("#")[1] + "!", {
 					size: 12,
 					height: 12,
-					curveSegments: 10,
+					curveSegments: 5,
 					font: "optimer",
 					weight: "bold",
 					style: "normal",
-					bevelThickness: 10,
+					bevelThickness: 8,
 					bevelSize: 1,
 					bevelEnabled: true
 	});
@@ -189,7 +189,7 @@ function init() {
 	geomText.computeBoundingBox();
 	//geomText.computeVertexNormals();
 	textCenterOffset = -0.5 * ( geomText.boundingBox.max.x - geomText.boundingBox.min.x );
-	geomText.applyMatrix( new THREE.Matrix4().makeTranslation( textCenterOffset, 0, 0 ) );
+	geomText.applyMatrix( new THREE.Matrix4().makeTranslation( textCenterOffset + 20.0, 0, 0 ) );
 	text.position.y = 40.0;
 	text.scale.z = 0.1;
 	
@@ -305,12 +305,12 @@ function render() {
 	camera.position.y = 100 * Math.cos( phi );
 	camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
 
-	if (textRotation < -theta + 1.9 - 0.01)
+	if (textRotation < -theta + 2.0 - 0.01)
 		textRotation = textRotation + 0.01;
-	else if (textRotation > -theta + 1.9 + 0.01)
+	else if (textRotation > -theta + 2.0 + 0.01)
 		textRotation = textRotation - 0.01;
 	else
-		textRotation = -theta + 1.9;
+		textRotation = -theta + 2.0;
 	text.rotation.y = textRotation;
 
 	camera.lookAt( scene.position );
