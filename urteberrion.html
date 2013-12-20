@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>tesseract</title>
+		<script src="lib/three.min.js"></script>
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<script src="fonts/optimer_bold.typeface.js"></script>	
+		<script type="text/javascript">
+		
+var camera, cubeCamera, scene, renderer;
+var vertsFixed   = [];
+var vertsRotated = [];
+var vertexUnions = [];
+var t=0.0;
+var fov = 80,
+onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+lon = 40, onMouseDownLon = 0,
+lat = 30, onMouseDownLat = 0,
+phi = 0, theta = 0;
+var onPointerDownPointerX,
+    onPointerDownPointerY,
+    onPointerDownLon,
+    onPointerDownLat;
+var spheres = [];
+var cyls = [];
+var text, textRotation = 0;
+
+// Start after loading background //
+var texture = THREE.ImageUtils.loadTexture( 'talaia1.jpg', new THREE.UVMapping(), function () {
+	init();
+	animate();
+} );
+	
+function catmullrom_unit(a, b, c, d, i)
+{
+    return a * ((-i + 2) * i - 1) * i * 0.5 +
+           b * (((3 * i - 5) * i) * i + 2) * 0.5 +
+           c * ((-3 * i + 4) * i + 1) * i * 0.5 +
+           d * ((i - 1) * i * i) * 0.5;
+}
+
+function catmullrom(p1, p2, p3, p4, i)
+{
+	result = new THREE.Vector3(0,0,0);
+	result.setX(catmullrom_unit(p1.x, p2.x, p3.x, p4.x, i));
+	result.setY(catmullrom_unit(p1.y, p2.y, p3.y, p4.y, i));
+	result.setZ(catmullrom_unit(p1.z, p2.z, p3.z, p4.z, i));
+    return result;
+}
+
+function transformCylinderToP1P2(cyl, p1, p2)
+{
+	cyl.updateMatrix();
+
+	cyl.matrixAutoUpdate = false;
+
+	center = new THREE.Vector3(0,0,0);
+	center.copy(p1);
+	center.add(p2);
+	center.multiplyScalar(0.5);
+
+	cyl.matrix.makeTranslation(center.x, center.y, center.z);
+
+	vector = new THREE.Vector3(0,0,0);
+	vector.copy(p2);
+	vector.sub(p1);
+
+	var length = vector.length();
+
+	// take cross product of vector and up vector to get axis of rotation
+	var yAxis = new THREE.Vector3(0,1,0);
+	// Needed later for dot product, just do it now;
+	// a little lazy, should really copy it to a local Vector3.
+	vector.normalize();
+	var rotationAxis = new THREE.Vector3();
+	rotationAxis.crossVectors(vector, yAxis);
+	if ( rotationAxis.length() < 0.000001 )
+	{
+		// Special case: if rotationAxis is just about zero, set to X axis,
+		// so that the angle can be given as 0 or PI. This works ONLY
+		// because we know one of the two axes is +Y.
+		rotationAxis.set( 1, 0, 0 );
+	}
+	rotationAxis.normalize();
+
+	// take dot product of vector and up vector to get cosine of angle of rotation
+	var theta = -Math.acos( vector.dot( yAxis ) );
+	var rotMatrix = new THREE.Matrix4();
+	rotMatrix.makeRotationAxis( rotationAxis, theta );
+   
+	cyl.matrix.multiply( rotMatrix );
+	cyl.matrix.scale(new THREE.Vector3(1, length, 1));
+}
+
+function init() {
+
+    scene = new THREE.Scene();
+
+ 	var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
+	mesh.scale.x = -1;
+	scene.add( mesh );
+
+	camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.z = 100;
+    scene.add(camera);
+
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+	cubeCamera = new THREE.CubeCamera( 1, 1000, 256 );
+	cubeCamera.renderTarget.minFilter = THREE.LinearMipMapLinearFilter;
+	//cubeCamera.renderTarget.mapping = new THREE.CubeRefractionMapping(); //refraction, glass!
+	scene.add( cubeCamera );
+	
+	document.body.appendChild( renderer.domElement );
+	
+	//
+	
+	var material = new THREE.MeshBasicMaterial( { envMap: cubeCamera.renderTarget } );
+
+	vertsFixed[0]  = new THREE.Vector3(-15,-15,-15);
+	vertsFixed[1]  = new THREE.Vector3( 15,-15,-15);
+	vertsFixed[2]  = new THREE.Vector3( 15, 15,-15);
+	vertsFixed[3]  = new THREE.Vector3(-15, 15,-15);
+	vertsFixed[4]  = new THREE.Vector3(-15,-15, 15);
+	vertsFixed[5]  = new THREE.Vector3( 15,-15, 15);
+	vertsFixed[6]  = new THREE.Vector3( 15, 15, 15);
+	vertsFixed[7]  = new THREE.Vector3(-15, 15, 15);
+	vertsFixed[8]  = new THREE.Vector3(-30,-30,-30);
+	vertsFixed[9]  = new THREE.Vector3( 30,-30,-30);
+	vertsFixed[10] = new THREE.Vector3( 30, 30,-30);
+	vertsFixed[11] = new THREE.Vector3(-30, 30,-30);
+	vertsFixed[12] = new THREE.Vector3(-30,-30, 30);
+	vertsFixed[13] = new THREE.Vector3( 30,-30, 30);
+	vertsFixed[14] = new THREE.Vector3( 30, 30, 30);
+	vertsFixed[15] = new THREE.Vector3(-30, 30, 30);
+	
+    geomSph = new THREE.SphereGeometry(2, 16, 16);
+    for (var i=0; i < vertsFixed.length; ++i)
+    {
+        var sphere = new THREE.Mesh(geomSph, material);
+        sphere.position.copy(vertsFixed[i]);
+        scene.add(sphere);
+		spheres[i] = sphere;
+    }
+   
+    vertexUnions = [ // small cube //
+                     [0,1],   [1,2],   [2,3],   [3,0],
+                     [0,4],   [1,5],   [2,6],   [3,7],
+                     [4,5],   [5,6],   [6,7],   [7,4],
+                     // diagonals //
+                     [0,8],   [1,9],   [2,10],  [3,11],
+                     [4,12],  [5,13],  [6,14],  [7,15],
+                     // big cube //
+                     [8,9],   [9,10],  [10,11], [11,8], 
+                     [8,12],  [9,13],  [10,14], [11,15],
+                     [12,13], [13,14], [14,15], [15,12] ];
+
+    geomCyl = new THREE.CylinderGeometry(2, 2, 1, 16, 1, true);
+    for (var i=0; i < vertexUnions.length; ++i)
+    {
+        cyl = new THREE.Mesh(geomCyl, material);
+        scene.add(cyl);
+		cyls[i] = cyl;
+    }
+
+	geomText = new THREE.TextGeometry("Urte berri on " + window.location.href.split("#")[1] + "!", {
+					size: 12,
+					height: 12,
+					curveSegments: 10,
+					font: "optimer",
+					weight: "bold",
+					style: "normal",
+					bevelThickness: 10,
+					bevelSize: 1,
+					bevelEnabled: true
+	});
+	text = new THREE.Mesh(geomText, material);
+	scene.add(text);
+	
+	geomText.computeBoundingBox();
+	//geomText.computeVertexNormals();
+	textCenterOffset = -0.5 * ( geomText.boundingBox.max.x - geomText.boundingBox.min.x );
+	geomText.applyMatrix( new THREE.Matrix4().makeTranslation( textCenterOffset, 0, 0 ) );
+	text.position.y = 40.0;
+	text.scale.z = 0.1;
+	
+	//
+
+	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+	document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+	document.addEventListener( 'touchmove', onDocumentTouchMove, false );
+	document.addEventListener( 'mousewheel', onDocumentMouseWheel, false );
+	document.addEventListener( 'DOMMouseScroll', onDocumentMouseWheel, false);
+	window.addEventListener( 'resize', onWindowResized, false );
+
+	onWindowResized( null );
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    render();
+}
+
+function onWindowResized( event ) {
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+}
+
+function onDocumentMouseDown( event ) {
+	event.preventDefault();
+	onPointerDownPointerX = event.clientX;
+	onPointerDownPointerY = event.clientY;
+	onPointerDownLon = lon;
+	onPointerDownLat = lat;
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+}
+
+function onDocumentMouseMove( event ) {
+	lon = ( event.clientX - onPointerDownPointerX ) * 0.1 + onPointerDownLon;
+	lat = ( event.clientY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+}
+
+function onDocumentMouseUp( event ) {
+	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+}
+
+function onDocumentTouchStart( event ) {
+	if ( event.touches.length === 1 ) {
+		event.preventDefault();
+		onPointerDownPointerX = event.touches[ 0 ].pageX;
+		onPointerDownPointerY = event.touches[ 0 ].pageY;
+		onPointerDownLon = lon;
+		onPointerDownLat = lat;
+	}
+}
+
+function onDocumentTouchMove( event ) {
+	if ( event.touches.length === 1 ) {
+		event.preventDefault();
+		lon = ( event.touches[ 0 ].pageX - onPointerDownPointerX ) * 0.1 + onPointerDownLon;
+		lat = ( event.touches[ 0 ].pageY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+	}
+}
+
+function onDocumentMouseWheel( event ) {
+	// WebKit
+	if ( event.wheelDeltaY )
+		fov -= event.wheelDeltaY * 0.05;
+	// Opera / Explorer 9
+	else if ( event.wheelDelta )
+		fov -= event.wheelDelta * 0.05;
+	// Firefox
+	else if ( event.detail )
+		fov += event.detail * 1.0;
+
+	camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+}
+
+function render() {
+
+	vertsRotated[0]  = catmullrom(vertsFixed[1],  vertsFixed[0],  vertsFixed[8],  vertsFixed[9],  t);
+	vertsRotated[1]  = catmullrom(vertsFixed[9],  vertsFixed[1],  vertsFixed[0],  vertsFixed[8],  t);
+	vertsRotated[9]  = catmullrom(vertsFixed[8],  vertsFixed[9],  vertsFixed[1],  vertsFixed[0],  t);
+	vertsRotated[8]  = catmullrom(vertsFixed[0],  vertsFixed[8],  vertsFixed[9],  vertsFixed[1],  t);
+	vertsRotated[3]  = new THREE.Vector3(vertsRotated[0].x, -vertsRotated[0].y,  vertsRotated[0].z);
+	vertsRotated[2]  = new THREE.Vector3(vertsRotated[1].x, -vertsRotated[1].y,  vertsRotated[1].z);
+	vertsRotated[10] = new THREE.Vector3(vertsRotated[9].x, -vertsRotated[9].y,  vertsRotated[9].z);
+	vertsRotated[11] = new THREE.Vector3(vertsRotated[8].x, -vertsRotated[8].y,  vertsRotated[8].z);	
+	vertsRotated[4]  = new THREE.Vector3(vertsRotated[0].x,  vertsRotated[0].y, -vertsRotated[0].z);
+	vertsRotated[5]  = new THREE.Vector3(vertsRotated[1].x,  vertsRotated[1].y, -vertsRotated[1].z);
+	vertsRotated[13] = new THREE.Vector3(vertsRotated[9].x,  vertsRotated[9].y, -vertsRotated[9].z);
+	vertsRotated[12] = new THREE.Vector3(vertsRotated[8].x,  vertsRotated[8].y, -vertsRotated[8].z);		
+	vertsRotated[7]  = new THREE.Vector3(vertsRotated[0].x, -vertsRotated[0].y, -vertsRotated[0].z);
+	vertsRotated[6]  = new THREE.Vector3(vertsRotated[1].x, -vertsRotated[1].y, -vertsRotated[1].z);
+	vertsRotated[14] = new THREE.Vector3(vertsRotated[9].x, -vertsRotated[9].y, -vertsRotated[9].z);
+	vertsRotated[15] = new THREE.Vector3(vertsRotated[8].x, -vertsRotated[8].y, -vertsRotated[8].z);	
+
+	for (var i=0; i < vertexUnions.length; ++i)
+		transformCylinderToP1P2(cyls[i], vertsRotated[vertexUnions[i][0]], vertsRotated[vertexUnions[i][1]]);
+
+    for (var i=0; i < vertsRotated.length; ++i)
+        spheres[i].position.copy(vertsRotated[i]);
+		
+	t = t + 0.01;
+	if (t > 1.0)
+		t = 0.0;
+
+	lon += .05;
+	lat   = Math.max( - 85, Math.min( 85, lat ) );
+	phi   = THREE.Math.degToRad( 90 - lat );
+	theta = THREE.Math.degToRad( lon );
+		
+	camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+	camera.position.y = 100 * Math.cos( phi );
+	camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
+
+	if (textRotation < -theta + 1.9 - 0.01)
+		textRotation = textRotation + 0.01;
+	else if (textRotation > -theta + 1.9 + 0.01)
+		textRotation = textRotation - 0.01;
+	else
+		textRotation = -theta + 1.9;
+	text.rotation.y = textRotation;
+
+	camera.lookAt( scene.position );
+
+	for (var i=0; i < spheres.length; ++i)
+		spheres[i].visible = false;
+	for (var i=0; i < cyls.length; ++i)
+		cyls[i].visible = false;
+	//
+	cubeCamera.updateCubeMap( renderer, scene );
+	//
+	for (var i=0; i < spheres.length; ++i)
+		spheres[i].visible = true;
+	for (var i=0; i < cyls.length; ++i)
+		cyls[i].visible = true;
+	
+	
+	
+    renderer.render(scene, camera);
+
+}
+	
+		</script>
+	
+	</body>
+</html>
