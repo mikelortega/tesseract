@@ -62,12 +62,7 @@ function transformCylinderToP1P2(cyl, p1, p2)
 
 	cyl.matrixAutoUpdate = false;
 
-	center = new THREE.Vector3(0,0,0);
-	center.copy(p1);
-	center.add(p2);
-	center.multiplyScalar(0.5);
-
-	cyl.matrix.makeTranslation(center.x, center.y, center.z);
+	cyl.matrix.makeTranslation(p1.x, p1.y, p1.z);
 
 	vector = new THREE.Vector3(0,0,0);
 	vector.copy(p2);
@@ -165,6 +160,7 @@ function init() {
                      [12,13], [13,14], [14,15], [15,12] ];
 
     geomCyl = new THREE.CylinderGeometry(2, 2, 1, 16, 1, true);
+	geomCyl.applyMatrix( new THREE.Matrix4().makeTranslation( 0, 0.5, 0 ) );
     for (var i=0; i < vertexUnions.length; ++i)
     {
         cyl = new THREE.Mesh(geomCyl, material);
